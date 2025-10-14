@@ -22,3 +22,4 @@ const WaterTaskSchema = new mongoose.Schema({
 
 const WaterTaskModel = mongoose.model("WaterTask", WaterTaskSchema);
 export default WaterTaskModel; 
+// XD
