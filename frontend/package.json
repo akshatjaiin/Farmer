@@ -1,4 +1,7 @@
 {
+  "engine":{
+    "node":"20.19.5"
+  },
   "name": "frontend",
   "private": true,
   "version": "0.0.0",

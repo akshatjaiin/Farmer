@@ -1,4 +1,7 @@
 {
+  "engine":{
+    "node":"20.19.5"
+  },
   "name": "farmstart",
   "version": "1.0.0",
   "description": "FarmStart - A comprehensive farm management application",
