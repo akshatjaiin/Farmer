@@ -1,7 +1,7 @@
 // API configuration for different environments
 const config = {
   development: {
-    baseURL: 'http://localhost:3001'
+    baseURL: 'https://miserable-ghost-wr7g7xpjp9453jgj-3001.app.github.dev'
   },
   production: {
     baseURL: '/api'
@@ -20,7 +20,7 @@ export const endpoints = {
   // Layout endpoints
   createLayout: '/layout/create-layout',
   getLayouts: '/layout/get-layouts',
-  getLayout: (id) => `/layout/${id}`,
+  getLayout: (id) => `/layout/get-layout/${id}`,
   getPrediction: '/layout/get-prediction'
 };
 

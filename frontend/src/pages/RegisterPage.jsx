@@ -23,7 +23,7 @@ const RegisterPage = () => {
 
         try {
             // Attempt to register
-            const result = await axios.post("http://localhost:3001/register", {
+            const result = await axios.post("https://miserable-ghost-wr7g7xpjp9453jgj-3001.app.github.dev/register", {
                 username,
                 email,
                 password

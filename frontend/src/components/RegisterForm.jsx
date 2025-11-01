@@ -15,7 +15,7 @@ const RegisterForm = () => {
     
     const handleSubmit = async (e) => {
         e.preventDefault();
-        await axios.post("http://localhost:3001/register", {username, email, password}) 
+        await axios.post("https://miserable-ghost-wr7g7xpjp9453jgj-3001.app.github.dev/register", {username, email, password}) 
         .then(result => {  
         console.log("register-form-result: "+result);
         console.log("register-response-status: "+result.status)

@@ -70,13 +70,25 @@ const LayoutPage = () => {
     if (!validateLayout()) return;
 
     setIsSaving(true);
+    
+    // Calculate total yield from all crops
+    const totalYield = cropAreas.reduce((sum, crop) => {
+      const yield_ = crop.predictedYield || 0;
+      return sum + (typeof yield_ === 'number' ? yield_ : 0);
+    }, 0);
+
     const layoutData = {
       name: name,
       dimensions: farmDimensions,
-      soil_ph: soilPH,
-      soil_npk: soilNPK,
-      soil_om: soilOM,
+      // include backend-expected keys
+      soilPh: soilPH,
+      soilNpk: soilNPK,
+      soilOm: soilOM,
+      soilPH: soilPH,
+      soilNPK: soilNPK,
+      soilOrganicMatter: soilOM,
       crops: cropAreas.map((crop) => ({
+        id: crop.id,
         cropType: crop.cropType,
         irrigation: crop.irrigation,
         fertilizerType: crop.fertilizerType,
@@ -85,64 +97,77 @@ const LayoutPage = () => {
         height: crop.height,
         x: crop.x,
         y: crop.y,
-        density: crop.density,
-        predictedYield: crop.predictedYield
+        density: Number(crop.density) || 0,
+        predictedYield: typeof crop.predictedYield === 'number' ? crop.predictedYield : null
       })),
     };
 
     try {
+      console.log("Saving layout payload:", layoutData);
       const result = await axios.post(buildApiUrl(endpoints.createLayout), layoutData);
-      console.log("Layout saved:", result.data.message);
+      console.log("Layout saved:", result.data);
       navigate("/layout-dashboard");
     } catch (error) {
       console.error("Error saving layout:", error);
-      setSaveError("Failed to save layout. Please try again.");
+      console.error("server response data:", error?.response?.data);
+      setSaveError(error?.response?.data?.message || error.message || "Failed to save layout");
     } finally {
       setIsSaving(false);
     }
   };
 
   const predictYield = async () => {
-    console.log("before");
-    console.log("2. cropAreas:", cropAreas);
-    const layoutData = {
-      name: name,
-      dimensions: farmDimensions,
-      soil_ph: soilPH,
-      soil_npk: soilNPK,
-      soil_om: soilOM,
-      crops: cropAreas.map((crop) => ({
-        cropType: crop.cropType,
-        irrigation: crop.irrigation,
-        fertilizerType: crop.fertilizerType,
-        fertilizerMethod: crop.fertilizerMethod,
-        width: crop.width,
-        height: crop.height,
-        x: crop.x,
-        y: crop.y,
-        density: crop.density,
-        id: crop.id,
-        yieldPrediction: crop.yieldPrediction
-      })),
-    };
-    console.log("after");
+    setSaveError("");
+    try {
+      console.log("2. cropAreas:", cropAreas);
+      const layoutData = {
+        name: name,
+        dimensions: farmDimensions,
+        // send backend-expected numeric soil keys
+        soilPH: soilPH,
+        soilNPK: soilNPK,
+        soilOrganicMatter: soilOM,
+        // keep lowercase too if backend accepts both (optional)
+        soilPh: soilPH,
+        soilNpk: soilNPK,
+        soilOm: soilOM,
+        crops: cropAreas.map((crop) => ({
+          id: crop.id,
+          cropType: crop.cropType,
+          irrigation: crop.irrigation,
+          fertilizerType: crop.fertilizerType,
+          fertilizerMethod: crop.fertilizerMethod,
+          width: crop.width,
+          height: crop.height,
+          x: crop.x,
+          y: crop.y,
+          density: Number(crop.density) || 0,            // coerce to Number
+          predictedYield: typeof crop.predictedYield === 'number' ? crop.predictedYield : null
+        })),
+      };
 
-    const response = await axios.post(buildApiUrl(endpoints.getPrediction), layoutData);
-    const predictedYields = response.data.predictedYields;
-    console.log("response-predict: ", response.data);
-    // Update the crop areas with predicted yields
-    console.log("before1");
-    setCropAreas(currentCropAreas =>
-      currentCropAreas.map(crop => {
-        const predictedYield = predictedYields.find(yieldData => yieldData.cropId === crop.id);
-        return predictedYield ? { ...crop, predictedYield: predictedYield.value } : crop;
-      })
-    );
-    console.log("after1");
+      console.log("predict URL:", buildApiUrl(endpoints.getPrediction));
+      console.log("Predict payload:", layoutData);
 
-    // compute total yield for the layout (example: sum of predicted yields)
-    const totalYield = cropAreas.reduce((sum, crop) => sum + (crop.predictedYield || 0), 0);
-    console.log("Total Yield for Layout:", totalYield);
+      const response = await axios.post(buildApiUrl(endpoints.getPrediction), layoutData);
+      console.log("response-predict: ", response.data);
+
+      const predictedYields = response.data?.predictedYields || [];
+
+      setCropAreas(currentCropAreas =>
+        currentCropAreas.map(crop => {
+          const predicted = predictedYields.find(p => p.cropId === crop.id || p.crop_id === crop.id);
+          return predicted ? { ...crop, predictedYield: predicted.value ?? predicted.value_kg } : crop;
+        })
+      );
+
+      const totalYield = predictedYields.reduce((sum, p) => sum + (p.value || p.value_kg || 0), 0);
+      console.log("Total Yield for Layout (from response):", totalYield);
+    } catch (error) {
+      console.error("Error predicting yields:", error);
+      console.error("server response data:", error?.response?.data);
+      setSaveError(error?.response?.data?.message || error.message || "Failed to predict yields");
+    }
   };
 
   return (
@@ -273,9 +298,9 @@ const LayoutPage = () => {
             </div>
 
             <div className="farm-area-container">
-              <FarmArea 
-                farmDimensions={farmDimensions} 
-                cropAreas={cropAreas} 
+              <FarmArea
+                farmDimensions={farmDimensions}
+                cropAreas={cropAreas}
                 setCropAreas={setCropAreas}
                 selectedCrop={selectedCrop}
                 setSelectedCrop={setSelectedCrop}
@@ -285,14 +310,14 @@ const LayoutPage = () => {
             <div className="layout-actions">
               {saveError && <div className="error-message">{saveError}</div>}
               <div className="action-buttons">
-                <button 
+                <button
+                  type="button"
                   className="reset-button"
                   onClick={resetLayout}
-                  type="button"
                 >
                   Reset Layout
                 </button>
-                <button 
+                <button
                   className="save-button"
                   onClick={saveLayout}
                   disabled={isSaving}
@@ -308,8 +333,8 @@ const LayoutPage = () => {
             <div className="crop-list">
               {cropAreas.length > 0 ? (
                 cropAreas.map((crop) => (
-                  <div 
-                    key={crop.id} 
+                  <div
+                    key={crop.id}
                     className={`crop-data-item ${selectedCrop && selectedCrop.id === crop.id ? 'selected' : ''}`}
                     onClick={() => setSelectedCrop(crop)}
                     role="button"
@@ -320,17 +345,19 @@ const LayoutPage = () => {
                       }
                     }}
                   >
-                    <h3>{crop.cropType !== "Unknown" ? crop.cropType : "Undefined Area"}</h3>
+                    <h3>{crop.cropType && crop.cropType !== "Unknown" ? crop.cropType : "Undefined Area"}</h3>
                     <div className="crop-details">
-                      <p><strong>Irrigation:</strong> {crop.irrigation}</p>
-                      <p><strong>Fertilizer:</strong> {crop.fertilizerType}</p>
-                      <p><strong>Method:</strong> {crop.fertilizerMethod}</p>
-                      <p><strong>Size:</strong> {Math.round(crop.width * crop.height)} sq m</p>
-                      <p><strong>Density:</strong> {crop.density} plants/m^2</p>
+                      <p><strong>Irrigation:</strong> {crop.irrigation || '--'}</p>
+                      <p><strong>Fertilizer:</strong> {crop.fertilizerType || '--'}</p>
+                      <p><strong>Method:</strong> {crop.fertilizerMethod || '--'}</p>
+                      <p><strong>Size:</strong> {Math.round((crop.width || 0) * (crop.height || 0))} sq m</p>
+                      <p><strong>Density:</strong> {crop.density ?? '--'} plants/m^2</p>
                       <div className="yield-info">
                         <p><strong>Expected Yield:</strong></p>
                         <div className="yield-details">
-                          <span className="yield-value">{crop.predictedYield !== undefined ? Number(crop.predictedYield).toFixed(4) : '--'}</span>
+                          <span className="yield-value">
+                            {crop.predictedYield !== undefined && crop.predictedYield !== null ? Number(crop.predictedYield).toFixed(4) : '--'}
+                          </span>
                           <span className="yield-unit"> kg/m2</span>
                         </div>
                       </div>
@@ -340,15 +367,16 @@ const LayoutPage = () => {
               ) : (
                 <div className="no-crops-message">
                   No crop areas added yet. Click and drag on the farm area to create one.
-                </div>         
+                </div>
               )}
-              <button 
-                className="predict-button"
-                onClick={predictYield}
-              >
-                Predict Yield for Crop Areas
-              </button>
             </div>
+
+            <button
+              className="predict-button"
+              onClick={predictYield}
+            >
+              Predict Yield for Crop Areas
+            </button>
           </div>
         </div>
       </div>

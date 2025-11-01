@@ -22,7 +22,7 @@ const LoginPage = () => {
             
             // Optional: You can still try the API call after navigation
             try {
-                const result = await axios.post("http://localhost:3001/login", {email, password});
+                const result = await axios.post("https://miserable-ghost-wr7g7xpjp9453jgj-3001.app.github.dev/login", {email, password});
                 setCookies("access_token", result.data.token);
                 window.localStorage.setItem("userID", result.data.userID);
             } catch (error) {

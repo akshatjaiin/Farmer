@@ -75,7 +75,7 @@ const CropPage = () => {
   // Fetch layouts when component mounts
   useEffect(() => {
     setIsLoading(true);
-    axios.get("http://localhost:3001/layout/get-layouts")
+    axios.get("https://miserable-ghost-wr7g7xpjp9453jgj-3001.app.github.dev/layout/get-layouts")
       .then(response => {
         setLayouts(response.data);
         if (response.data.length > 0 && !selectedLayoutId) {
@@ -94,7 +94,7 @@ const CropPage = () => {
   useEffect(() => {
     if (selectedLayoutId) {
       setIsLoading(true);
-      axios.get(`http://localhost:3001/layout/get-layout/${selectedLayoutId}`)
+      axios.get(`https://miserable-ghost-wr7g7xpjp9453jgj-3001.app.github.dev/layout/get-layout/${selectedLayoutId}`)
         .then(response => {
           // Transform crop areas into crop entries with default planting info
           const cropAreas = response.data.crop_areas.map(crop => ({
@@ -128,7 +128,7 @@ const CropPage = () => {
           )
         };
         
-        axios.put(`http://localhost:3001/layout/update-layout/${selectedLayoutId}`, updatedLayout)
+        axios.put(`https://miserable-ghost-wr7g7xpjp9453jgj-3001.app.github.dev/layout/update-layout/${selectedLayoutId}`, updatedLayout)
           .catch(error => console.error("Error updating layout:", error));
       }
     }

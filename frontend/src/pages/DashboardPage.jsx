@@ -76,7 +76,7 @@ const DashboardPage = () => {
         const fetchTasks = async () => {
             if (selectedLayoutId) {  // Ensure selectedLayoutId exists
                 try {
-                    const response = await axios.get(`http://localhost:3001/layout/get-layout-tasks/${selectedLayoutId}`);
+                    const response = await axios.get(`https://miserable-ghost-wr7g7xpjp9453jgj-3001.app.github.dev/layout/get-layout-tasks/${selectedLayoutId}`);
     
                     // Ensure tasks exist before setting state
                     if (response.data.waterTasks) {
@@ -136,11 +136,19 @@ const DashboardPage = () => {
     
         try {
           // Send a GET request to the backend to generate tasks
-          const response = await axios.get(`http://localhost:3001/layout/generate-schedule-tasks/${selectedLayoutId}`);
+          const response = await axios.get(`https://miserable-ghost-wr7g7xpjp9453jgj-3001.app.github.dev/layout/generate-schedule-tasks/${selectedLayoutId}`);
           
           // Handle success (you can show the tasks or any other response)
           console.log('Tasks generated successfully:', response.data);
-          // You can trigger state updates here if needed
+          
+          // Update state with the newly generated tasks
+          if (response.data.waterTasks) {
+            setWaterTasks(response.data.waterTasks);
+          }
+          if (response.data.fertTasks) {
+            setFertTasks(response.data.fertTasks);
+          }
+          
         } catch (err) {
           console.error('Error generating tasks:', err);
         //   setError('Failed to generate tasks. Please try again.');
